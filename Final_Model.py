@@ -6,7 +6,6 @@ import tensorflow as tf
 from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
-import shap
 
 # Načítanie predspracovaného datasetu
 file_path = 'obesity_dataset.csv'
@@ -65,9 +64,18 @@ plt.plot(history.history['val_accuracy'], label='validation accuracy')
 plt.legend(loc='best')
 plt.show()
 
-# Vytvorenie explainer objektu pre neurónovú sieť - > toto podaril ChatGPT
-explainer = shap.Explainer(mlp, X_train)
-shap_values = explainer(X_test)
+# Určenie, ktoré atribúty najviac prispievajú k výsledkom pre jednotlivé triedy
+# - > s týmto pomáhal ChatGPT
+# Predikcia modelu
+y_pred_probs = mlp.predict(X_test)
 
-# Vizualizácia priemerného vplyvu atribútov
-shap.summary_plot(shap_values, X_test, feature_names=df.columns[:-1])
+# Priemerné pravdepodobnosti pre každú triedu
+correlations = []
+for i in range(y_pred_probs.shape[1]):
+    corr = pd.DataFrame(X_test, columns=df.columns[:-1]).corrwith(pd.Series(y_pred_probs[:, i]))
+    correlations.append(corr)
+
+# Vizualizácia najdôležitejších atribútov pre každú triedu
+for i, class_name in enumerate(['Insufficient_Weight', 'Normal_Weight', 'Overweight_Level_I', 'Overweight_Level_II', 'Obesity_Type_I', 'Obesity_Type_II', 'Obesity_Type_III']):  # Zadajte názvy tried
+    correlations[i].sort_values(ascending=False).head(10).plot(kind='barh', title=f"Top Features for {class_name}")
+    plt.show()
